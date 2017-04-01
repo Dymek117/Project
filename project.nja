@@ -1,0 +1,30 @@
+{
+  "mainFile": "ReadIMU.py", 
+  "use-tabs": false, 
+  "venv": "", 
+  "relatedProjects": [], 
+  "name": "Project", 
+  "license": "", 
+  "pythonExec": "python", 
+  "url": "", 
+  "PYTHONPATH": "", 
+  "preExecScript": "", 
+  "additional_builtins": [], 
+  "programParams": "", 
+  "indentation": 4, 
+  "supported-extensions": [
+    ".py", 
+    ".pyw", 
+    ".html", 
+    ".jpg", 
+    ".png", 
+    ".ui", 
+    ".css", 
+    ".json", 
+    ".js", 
+    ".ini"
+  ], 
+  "project-type": "", 
+  "postExecScript": "", 
+  "description": "no description available"
+}
