@@ -1,5 +1,6 @@
+import time
 import wiringpi2
-from twisted.internet import reactor
+from threading import Timer
 
 # -*- coding: utf-8 -*-
 
@@ -76,6 +77,7 @@ dimming_value        = 0xFF    # 99.6% [ 0.005223s ]
 # WORKING VARIABLES
 
 timer_list = [0] * 6
+pwm_driver = 0
 
 
 # TASK POINTERS
@@ -100,13 +102,28 @@ scheduler = 0
 # ====================================================================
 
 
+# --------------  I2C FUNCTIONS  --------------
+
+
+# ESTABILISH I2C CONNECTION, DRIVER CONFIGURATION
+
+def start_pwm_driver():
+    pwm_driver = wiringpi2.wiringPiI2CSetup(pwm_address)
+    time.sleep(0.001)
+    wiringpi2.wiringPiI2CWriteReg8(pwm_driver, mode_1_reg_address, mode_1_reg_value)
+
+
+
+# --------------  PWM SCHEDULER FUNCTIONS  --------------
 
 # CONVERSION [CONTROL MATRIX] -> [ESC PWM]
 
 def set_time(control_list):
 
-    for a in range(0, 5):
+    for a in range(0, 6):
         timer_list[a] = (control_list[a] + 100) * 0.00001
+
+
 
 
 
@@ -129,27 +146,34 @@ def start_timer(address, value):
 
 # TURN ON MOTORS, SET TASKS FOR EVERY AXIS ENABLE TIME, TRIGGER IN 200Hz LOOP!
 
-def scheduler_set(times):
+def scheduler_start(times):
 
     all_motors_on() # LOGIC '1' FOR EVERY CHANNEL
 
     # SCHEDULE TASKS FOR TURNING OFF EACH CHANNEL
 
-    NE_task = reactor.callLater(times[0], start_timer, north_east_address, north_east_off)
-    NW_task = reactor.callLater(times[1], start_timer, north_west_address, north_west_off)
-    W_task = reactor.callLater(times[2], start_timer, west_address, west_off)
-    SW_task = reactor.callLater(times[3], start_timer, south_west_address, south_west_off)
-    SE_task = reactor.callLater(times[4], start_timer, south_east_address, south_east_off)
-    E_task = reactor.callLater(times[5], start_timer, east_address, east_off)
+    NE_task = Timer(times[0], start_timer, args = (north_east_address, north_east_off))
+    NW_task = Timer(times[1], start_timer, args = (north_west_address, north_west_off))
+    W_task = Timer(times[2], start_timer, args = (west_address, west_off))
+    SW_task = Timer(times[3], start_timer, args = (south_west_address, south_west_off))
+    SE_task = Timer(times[4], start_timer, args = (south_east_address, south_east_off))
+    E_task = Timer(times[5], start_timer, args = (east_address, east_off))
 
-    scheduler = reactor.callLater(0.005, scheduler_set, timer_list)         # REPEAT AFTER 5ms
+    scheduler = Timer(0.005, scheduler_start, args = (timer_list))        # REPEAT AFTER 5ms
 
-    reactor.run()
+    NE_task.start()
+    NW_task.start()
+    W_task.start()
+    SW_task.start()
+    SE_task.start()
+    E_task.start()
+
+    scheduler.start()
 
 
 # STOP ALL TASKS, BREAK PWM DRIVER COMMUNICATION
 
-def scheduler_unset():
+def scheduler_stop():
 
     NE_task.cancel()
     NW_task.cancel()
@@ -159,31 +183,4 @@ def scheduler_unset():
     E_task.cancel()
 
     scheduler.cancel()
-
-    reactor.run()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
