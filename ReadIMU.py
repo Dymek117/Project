@@ -1,21 +1,38 @@
-import wiringpi2
 import time
 import math
+import wiringpi2
+from threading import Timer
 
 #Obnizona rozdzielczosc pomiaru, w razie potrzeby zmodyfikowac rejestry
+
+# ====================================================================
+# ***           CONFIG VARIABLES INITIALIZATION BEGIN              ***
+# ====================================================================
+
+
+# --------------------    I2C HARDWARE ADDRESS    --------------------
 
 gyro_address = 0x6b;
 acc_address = 0x1d;
 
+
+# ----------------------    CONFIG REGISTERS    ----------------------
+
 gyro_reg1 = 0b00100000;
 gyro_reg1_start = 0b00001111;
+
 gyro_reg4 = 0b00100011;
 gyro_reg4_start = 0b00110000;
 
+
 acc_reg1 = 0b00100000;
 acc_reg1_start = 0b01010111;
+
 acc_reg4 = 0b00100011;
 acc_reg4_start = 0b00101000;
+
+
+# ---------------------     WORKING VARIABLES     ---------------------
 
 gyro_x_angle = 0;
 gyro_y_angle = 0;
@@ -27,23 +44,8 @@ dt=0;
 prev_time=0;
 
 
-def start_dev (address, adres_rejestru1, adres_rejestru2, bajt_danych1, bajt_danych2):
+# -------------------     MEASUREMENT VARIABLES     -------------------
 
-    fd = wiringpi2.wiringPiI2CSetup(address);
-
-    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru1, bajt_danych1);
-    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru2, bajt_danych2);
-    time.sleep(0.1);
-    return fd;
-
-#inicjalizacja zyroskopu
-id = start_dev(gyro_address, gyro_reg1, gyro_reg4, gyro_reg1_start, gyro_reg4_start);
-
-#inicjalizacja akcelerometru
-id_a = start_dev(acc_address, acc_reg1, acc_reg4, acc_reg1_start, acc_reg4_start);
-
-
-#------------------------------------kalibracja---------------------------------------
 cx=[0]*51;
 cx2=0;
 cx3=0;
@@ -68,6 +70,50 @@ acz=[0]*51;
 acz2=0;
 acz3=0;
 
+
+
+# ====================================================================
+# ***            CONFIG VARIABLES INITIALIZATION END               ***
+# ====================================================================
+
+
+
+# ====================================================================
+# ***                  IMU READ FUNCTIONS BEGIN                    ***
+# ====================================================================
+
+
+# =========================  I2C FUNCTIONS  ==========================
+
+
+# ----------------------    INITIALIZE DEV     -----------------------
+
+def start_dev (address, adres_rejestru1, adres_rejestru2, bajt_danych1, bajt_danych2):
+
+    fd = wiringpi2.wiringPiI2CSetup(address);
+    time.sleep(0.01);
+
+    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru1, bajt_danych1);
+    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru2, bajt_danych2);    
+    
+    return fd;
+
+
+# ----------------------    INITIALIZE GYRO     ----------------------
+
+id = start_dev(gyro_address, gyro_reg1, gyro_reg4, gyro_reg1_start, gyro_reg4_start);
+
+
+# ------------------    INITIALIZE ACCELEROMETER     ------------------
+
+id_a = start_dev(acc_address, acc_reg1, acc_reg4, acc_reg1_start, acc_reg4_start);
+
+
+# =====================  CALIBRATION PROCEDURE  =======================
+
+
+# ----------------------    GYRO CALIBRATION     ----------------------
+
 def calibrate():
 
     for v in range(0,50):
@@ -85,12 +131,14 @@ def calibrate():
           MSBy = -(0x010000 - MSBy)
       y = ((MSBy << 8) | LSBy);
 
+    
       LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26);
       MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27);
       if MSBz & 0x8000:
          MSBz = -(0x010000 - MSBz)
       z = ((MSBz << 8) | LSBz);
 
+    
       gyro_rate_x = x * gyro_sens;
       cx[v]=gyro_rate_x;
       global cx2;
@@ -101,11 +149,13 @@ def calibrate():
       global cy2;
       cy2 += cy[v];
 
-
       gyro_rate_z = z * gyro_sens;
       cz[v]=gyro_rate_z;
       global cz2;
       cz2 += cz[v];
+
+
+# ------------------    ACCELEROMETER CALIBRATION     ------------------    
 
 def acc_calibrate():
 
@@ -123,6 +173,7 @@ def acc_calibrate():
       MSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2D);
       acc_z = ((MSBz << 8) | LSBz) >> 4;
 
+    
       acc_x_angle = (math.atan2(acc_y,acc_z)+3.141592653589793238546)*57.29578
       acx[t]=acc_x_angle;
       global acx2;
@@ -138,15 +189,22 @@ def acc_calibrate():
       global acz2;
       acz2 += acz[t];
 
-# Strojenie filtra
+
+# =====================  KALMAN FILTER  =======================
+
+
+# --------------------    FILTER TUNING     --------------------
 
 Q_angle = 0.001
 Q_bias = 0.003
 R_measure = 0.03
 
+
+# ------------------    FILTER MAIN CLASS     ------------------
+
 class Filter:
 
-    # Deklaracja stalych
+    # VARIABLES DECLARATION
 
     P = [[0 for o in range(2)] for p in range(2)]
 
@@ -172,14 +230,14 @@ class Filter:
         self.staticRate = rate - self.bias
         self.staticAngle += self.staticRate * dt
 
-        # Macierz kowariancji, predykcja dryftu
+        # COVARIANCE MATRIX, DRIFT PREDICTION
 
         self.P[0][0] += dt * (dt*self.P[1][1] - self.P[0][1] - self.P[1][0] + Q_angle)
         self.P[0][1] -= dt * self.P[1][1]
         self.P[1][0] -= dt * self.P[1][1]
         self.P[1][1] += Q_bias *dt
 
-        # Estymacja bledu, wzmocnienie Kalmana
+        # BIAS ESTIMATION, KALMAN AMPLIFICATION
 
         self.S = self.P[0][0] + R_measure
         self.K[0] = self.P[0][0] / self.S
@@ -189,7 +247,7 @@ class Filter:
         self.staticAngle += self.K[0] * self.angleDiff
         self.bias += self.K[1] * self.angleDiff
 
-        # Aktualizacja macierzy kowariancji
+        # COVARIANCE MATRIX UPDATE
 
         self.P[0][0] -= self.K[0] * self.P[0][0]
         self.P[0][1] -= self.K[0] * self.P[0][1]
@@ -199,7 +257,8 @@ class Filter:
         return self.staticAngle
 
 
-#----------------------------------odczyt z zyroskopu---------------------------------
+# -----------------------    CALIBRATE     -----------------------
+
 
 calibrate();
 calibrate_x = cx2/51;
@@ -217,19 +276,23 @@ z_angle = 0;
 
 p=0;
 
-# Filter class object initialization
+# -------------    INITIALIZE FILTER CLASS OBJECTS     -------------
 
 x_axis = Filter()
 y_axis = Filter()
 z_axis = Filter()
 
 
+# ------------------------    GYRO READ     ------------------------
+
 while 1:
 
  if (time.time() - prev_time > loop_time):
+    
    prev_time = time.time()
 
-   #osX
+   # X_AXIS
+    
    LSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x22);
    MSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x23);
    if MSBx & 0x8000:
@@ -242,7 +305,10 @@ while 1:
 
    #print "Os X = ", gyro_x_angle;
 
-   #osY
+
+
+   # Y_AXIS
+    
    LSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x24);
    MSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x25);
    if MSBy & 0x8000:
@@ -255,7 +321,10 @@ while 1:
 
    #print "Os Y = ", gyro_y_angle;
 
-   #osZ
+
+
+   # Z_AXIS
+    
    LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26);
    MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27);
    if MSBz & 0x8000:
@@ -271,10 +340,11 @@ while 1:
 
 
 
-#----------------------------------odczyt z akcelerometru---------------------------------
+# --------------------    ACCELEROMETER READ     ----------------------
 
 
-   #osX
+   # X_AXIS
+    
    LSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x28);
    MSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x29);
    if MSBx & 0x8000:
@@ -282,7 +352,8 @@ while 1:
    acc_x = ((MSBx << 8) | LSBx) >> 4;
 
 
-   #osY
+   # Y_AXIS
+    
    LSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2A);
    MSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2B);
    if MSBy & 0x8000:
@@ -290,13 +361,17 @@ while 1:
    acc_y = ((MSBy << 8) | LSBy) >> 4;
 
 
-   #osZ
+   # Z_AXIS
+    
    LSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2C);
    MSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2D);
    if MSBz & 0x8000:
      MSBz = -(0x010000 - MSBz)
    acc_z = ((MSBz << 8) | LSBz) >> 4;
 
+
+
+   # ANGLE CALCULATION
 
    acc_x_angle = (math.atan2((acc_y),(acc_z))+3.141592653589793238546)*57.29578
    #if acc_x_angle > 180:
@@ -312,6 +387,10 @@ while 1:
    #if acc_z_angle > 180:
       #acc_z_angle -= 180
    #print "Os Z = ", (acc_z_angle - acc_calibrate_z);
+
+
+
+
 
    # === Dane po filtracji, przechowywane w osobnych obiektach ====
 
