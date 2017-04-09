@@ -3,8 +3,6 @@ import math
 import wiringpi2
 from threading import Timer
 
-#Obnizona rozdzielczosc pomiaru, w razie potrzeby zmodyfikowac rejestry
-
 # ====================================================================
 # ***           CONFIG VARIABLES INITIALIZATION BEGIN              ***
 # ====================================================================
@@ -12,63 +10,83 @@ from threading import Timer
 
 # --------------------    I2C HARDWARE ADDRESS    --------------------
 
-gyro_address = 0x6b;
-acc_address = 0x1d;
+gyro_address = 0x6b
+acc_address = 0x1d
 
 
 # ----------------------    CONFIG REGISTERS    ----------------------
 
-gyro_reg1 = 0b00100000;
-gyro_reg1_start = 0b00001111;
+gyro_reg1 = 0b00100000
+gyro_reg1_start = 0b00001111
 
-gyro_reg4 = 0b00100011;
-gyro_reg4_start = 0b00110000;
+gyro_reg4 = 0b00100011
+gyro_reg4_start = 0b00110000
 
 
-acc_reg1 = 0b00100000;
-acc_reg1_start = 0b01010111;
+acc_reg1 = 0b00100000
+acc_reg1_start = 0b01010111
 
-acc_reg4 = 0b00100011;
-acc_reg4_start = 0b00101000;
+acc_reg4 = 0b00100011
+acc_reg4_start = 0b00101000
 
 
 # ---------------------     WORKING VARIABLES     ---------------------
 
-gyro_x_angle = 0;
-gyro_y_angle = 0;
-gyro_z_angle = 0;
+gyro_x_angle = 0
+gyro_y_angle = 0
+gyro_z_angle = 0
 
-loop_time = 0.01;
-gyro_sens = 0.0175;
-dt=0;
-prev_time=0;
+loop_time = 0.01
+gyro_sens = 0.0175
+dt=0
+prev_time=0
 
 
 # -------------------     MEASUREMENT VARIABLES     -------------------
 
-cx=[0]*51;
-cx2=0;
-cx3=0;
+cx=[0]*51
+cx2=0
+cx3=0
 
-cy=[0]*51;
-cy2=0;
-cy3=0;
+cy=[0]*51
+cy2=0
+cy3=0
 
-cz=[0]*51;
-cz2=0;
-cz3=0;
+cz=[0]*51
+cz2=0
+cz3=0
 
-acx=[0]*51;
-acx2=0;
-acx3=0;
+acx=[0]*51
+acx2=0
+acx3=0
 
-acy=[0]*51;
-acy2=0;
-acy3=0;
+acy=[0]*51
+acy2=0
+acy3=0
 
-acz=[0]*51;
-acz2=0;
-acz3=0;
+acz=[0]*51
+acz2=0
+acz3=0
+
+
+calibrate_x = 0
+calibrate_y = 0
+calibrate_z = 0
+
+acc_calibrate_x = 0
+acc_calibrate_y = 0
+acc_calibrate_z = 0
+
+x_angle = 0
+y_angle = 0
+z_angle = 0
+
+p = 0
+
+gyro_x_angle = 0
+gyro_y_angle = 0
+gyro_z_angle = 0
+
 
 
 
@@ -90,23 +108,14 @@ acz3=0;
 
 def start_dev (address, adres_rejestru1, adres_rejestru2, bajt_danych1, bajt_danych2):
 
-    fd = wiringpi2.wiringPiI2CSetup(address);
-    time.sleep(0.01);
+    fd = wiringpi2.wiringPiI2CSetup(address)
+    time.sleep(0.01)
 
-    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru1, bajt_danych1);
-    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru2, bajt_danych2);    
+    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru1, bajt_danych1)
+    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru2, bajt_danych2)
     
-    return fd;
+    return fd
 
-
-# ----------------------    INITIALIZE GYRO     ----------------------
-
-id = start_dev(gyro_address, gyro_reg1, gyro_reg4, gyro_reg1_start, gyro_reg4_start);
-
-
-# ------------------    INITIALIZE ACCELEROMETER     ------------------
-
-id_a = start_dev(acc_address, acc_reg1, acc_reg4, acc_reg1_start, acc_reg4_start);
 
 
 # =====================  CALIBRATION PROCEDURE  =======================
@@ -116,79 +125,86 @@ id_a = start_dev(acc_address, acc_reg1, acc_reg4, acc_reg1_start, acc_reg4_start
 
 def calibrate():
 
-    for v in range(0,50):
+    for v in range(0,51):
 
-      LSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x22);
-      MSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x23);
+      LSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x22)
+      MSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x23)
       if MSBx & 0x8000:
          MSBx = -(0x010000 - MSBx)
-      x = ((MSBx << 8) | LSBx);
+      x = ((MSBx << 8) | LSBx)
 
 
-      LSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x24);
-      MSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x25);
+      LSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x24)
+      MSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x25)
       if MSBy & 0x8000:
           MSBy = -(0x010000 - MSBy)
-      y = ((MSBy << 8) | LSBy);
+      y = ((MSBy << 8) | LSBy)
 
     
-      LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26);
-      MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27);
+      LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26)
+      MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27)
       if MSBz & 0x8000:
          MSBz = -(0x010000 - MSBz)
-      z = ((MSBz << 8) | LSBz);
+      z = ((MSBz << 8) | LSBz)
 
     
-      gyro_rate_x = x * gyro_sens;
-      cx[v]=gyro_rate_x;
-      global cx2;
-      cx2 += cx[v];
+      gyro_rate_x = x * gyro_sens
+      cx[v]=gyro_rate_x
+      global cx2
+      cx2 += cx[v]
 
-      gyro_rate_y = y * gyro_sens;
-      cy[v]=gyro_rate_y;
-      global cy2;
-      cy2 += cy[v];
+      gyro_rate_y = y * gyro_sens
+      cy[v]=gyro_rate_y
+      global cy2
+      cy2 += cy[v]
 
-      gyro_rate_z = z * gyro_sens;
-      cz[v]=gyro_rate_z;
-      global cz2;
-      cz2 += cz[v];
+      gyro_rate_z = z * gyro_sens
+      cz[v]=gyro_rate_z
+      global cz2
+      cz2 += cz[v]
+
+    calibrate_x = cx2 / 51
+    calibrate_y = cy2 / 51
+    calibrate_z = cz2 / 51
 
 
 # ------------------    ACCELEROMETER CALIBRATION     ------------------    
 
 def acc_calibrate():
 
-    for t in range(0,50):
+    for t in range(0,51):
 
-      LSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x28);
-      MSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x29);
-      acc_x = ((MSBx << 8) | LSBx) >> 4;
+      LSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x28)
+      MSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x29)
+      acc_x = ((MSBx << 8) | LSBx) >> 4
 
-      LSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2A);
-      MSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2B);
-      acc_y = ((MSBy << 8) | LSBy) >> 4;
+      LSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2A)
+      MSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2B)
+      acc_y = ((MSBy << 8) | LSBy) >> 4
 
-      LSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2C);
-      MSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2D);
-      acc_z = ((MSBz << 8) | LSBz) >> 4;
+      LSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2C)
+      MSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2D)
+      acc_z = ((MSBz << 8) | LSBz) >> 4
 
     
       acc_x_angle = (math.atan2(acc_y,acc_z)+3.141592653589793238546)*57.29578
-      acx[t]=acc_x_angle;
-      global acx2;
-      acx2 += acx[t];
+      acx[t]=acc_x_angle
+      global acx2
+      acx2 += acx[t]
 
       acc_y_angle = (math.atan2(acc_x,acc_z)+3.141592653589793238546)*57.29578
-      acy[t]=acc_y_angle;
-      global acy2;
-      acy2 += acy[t];
+      acy[t]=acc_y_angle
+      global acy2
+      acy2 += acy[t]
 
       acc_z_angle = (math.atan2(acc_x,acc_y)+3.141592653589793238546)*57.29578
-      acz[t]=acc_z_angle;
-      global acz2;
-      acz2 += acz[t];
+      acz[t]=acc_z_angle
+      global acz2
+      acz2 += acz[t]
 
+    acc_calibrate_x = acx2 / 51
+    acc_calibrate_y = acy2 / 51
+    acc_calibrate_z = acz2 / 51
 
 # =====================  KALMAN FILTER  =======================
 
@@ -225,6 +241,7 @@ class Filter:
         global P
         global bias
         global angleDiff
+
         """
 
         self.staticRate = rate - self.bias
@@ -257,33 +274,80 @@ class Filter:
         return self.staticAngle
 
 
-# -----------------------    CALIBRATE     -----------------------
-
-
-calibrate();
-calibrate_x = cx2/51;
-calibrate_y = cy2/51;
-calibrate_z = cz2/51;
-
-acc_calibrate();
-acc_calibrate_x = acx2/51;
-acc_calibrate_y = acy2/51;
-acc_calibrate_z = acz2/51;
-
-x_angle = 0;
-y_angle = 0;
-z_angle = 0;
-
-p=0;
-
-# -------------    INITIALIZE FILTER CLASS OBJECTS     -------------
-
-x_axis = Filter()
-y_axis = Filter()
-z_axis = Filter()
-
-
 # ------------------------    GYRO READ     ------------------------
+
+def gyro_x_read():
+
+    LSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x22)
+    MSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x23)
+    if MSBx & 0x8000:
+        MSBx = -(0x010000 - MSBx)
+    gyro_x = ((MSBx << 8) | LSBx)
+
+    gyro_rate_x = gyro_x * gyro_sens
+    gyro_x_time = (gyro_rate_x - calibrate_x) * dt / 50
+    gyro_x_angle += gyro_x_time
+
+
+def gyro_y_read():
+
+    LSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x24)
+    MSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x25)
+    if MSBy & 0x8000:
+        MSBy = -(0x010000 - MSBy)
+    gyro_y = ((MSBy << 8) | LSBy)
+
+    gyro_rate_y = gyro_y * gyro_sens
+    gyro_y_time = (gyro_rate_y - calibrate_y) * dt / 50
+    gyro_y_angle += gyro_y_time
+
+
+def gyro_z_read():
+
+    LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26)
+    MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27)
+    if MSBz & 0x8000:
+        MSBz = -(0x010000 - MSBz)
+
+    gyro_z = ((MSBz << 8) | LSBz)
+
+    gyro_rate_z = gyro_z * gyro_sens
+    gyro_z_time = (gyro_rate_z - calibrate_z) * dt / 50
+    gyro_z_angle += gyro_z_time
+
+
+
+# --------------------    ACCELEROMETER READ     ----------------------
+
+
+def acc_x_read():
+
+   LSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x28)
+   MSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x29)
+   if MSBx & 0x8000:
+      MSBx = -(0x010000 - MSBx)
+   acc_x = ((MSBx << 8) | LSBx) >> 4
+   return acc_x
+
+
+def acc_y_read():
+
+    LSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2A)
+    MSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2B)
+    if MSBy & 0x8000:
+        MSBy = -(0x010000 - MSBy)
+    acc_y = ((MSBy << 8) | LSBy) >> 4
+    return acc_y
+
+
+    def acc_z_read():
+
+    LSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2C)
+    MSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2D)
+    if MSBz & 0x8000:
+        MSBz = -(0x010000 - MSBz)
+    acc_z = ((MSBz << 8) | LSBz) >> 4
+    return acc_z
 
 while 1:
 
@@ -291,106 +355,7 @@ while 1:
     
    prev_time = time.time()
 
-   # X_AXIS
-    
-   LSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x22);
-   MSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x23);
-   if MSBx & 0x8000:
-      MSBx = -(0x010000 - MSBx)
-   gyro_x = ((MSBx << 8) | LSBx);
-
-   gyro_rate_x = gyro_x * gyro_sens;
-   gyro_x_time = (gyro_rate_x- calibrate_x)*dt/50;
-   gyro_x_angle += gyro_x_time;
-
-   #print "Os X = ", gyro_x_angle;
-
-
-
-   # Y_AXIS
-    
-   LSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x24);
-   MSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x25);
-   if MSBy & 0x8000:
-      MSBy = -(0x010000 - MSBy)
-   gyro_y = ((MSBy << 8) | LSBy);
-
-   gyro_rate_y = gyro_y * gyro_sens;
-   gyro_y_time = (gyro_rate_y - calibrate_y)*dt/50;
-   gyro_y_angle += gyro_y_time;
-
-   #print "Os Y = ", gyro_y_angle;
-
-
-
-   # Z_AXIS
-    
-   LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26);
-   MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27);
-   if MSBz & 0x8000:
-      MSBz = -(0x010000 - MSBz)
-
-   gyro_z = ((MSBz << 8) | LSBz);
-
-   gyro_rate_z = gyro_z * gyro_sens;
-   gyro_z_time = (gyro_rate_z - calibrate_z)*dt/50;
-   gyro_z_angle += gyro_z_time;
-
-   #print "Os Z = ", gyro_z_angle;
-
-
-
-# --------------------    ACCELEROMETER READ     ----------------------
-
-
-   # X_AXIS
-    
-   LSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x28);
-   MSBx = wiringpi2.wiringPiI2CReadReg16(id_a, 0x29);
-   if MSBx & 0x8000:
-      MSBx = -(0x010000 - MSBx)
-   acc_x = ((MSBx << 8) | LSBx) >> 4;
-
-
-   # Y_AXIS
-    
-   LSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2A);
-   MSBy = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2B);
-   if MSBy & 0x8000:
-      MSBy = -(0x010000 - MSBy)
-   acc_y = ((MSBy << 8) | LSBy) >> 4;
-
-
-   # Z_AXIS
-    
-   LSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2C);
-   MSBz = wiringpi2.wiringPiI2CReadReg16(id_a, 0x2D);
-   if MSBz & 0x8000:
-     MSBz = -(0x010000 - MSBz)
-   acc_z = ((MSBz << 8) | LSBz) >> 4;
-
-
-
-   # ANGLE CALCULATION
-
-   acc_x_angle = (math.atan2((acc_y),(acc_z))+3.141592653589793238546)*57.29578
-   #if acc_x_angle > 180:
-      #acc_x_angle -= 180
-   #print "Os X = ", (acc_x_angle - acc_calibrate_x);
-
-   acc_y_angle = (math.atan2((acc_x),(acc_z))+3.141592653589793238546)*57.29578
-   #if acc_y_angle > 180:
-      #acc_y_angle -= 180
-   #print "Os Y = ", (acc_y_angle - acc_calibrate_y);
-
-   acc_z_angle = (math.atan2((acc_x),(acc_y))+3.141592653589793238546)*57.29578
-   #if acc_z_angle > 180:
-      #acc_z_angle -= 180
-   #print "Os Z = ", (acc_z_angle - acc_calibrate_z);
-
-
-
-
+'''
 
    # === Dane po filtracji, przechowywane w osobnych obiektach ====
 
@@ -407,9 +372,11 @@ while 1:
    elif p==1000:
       print('-------------KONIEC SERII POMIAROWEJ---------------')
 
-   p+=1;
-   time.sleep(0.01);
-   dt = time.time() - prev_time;
+   p+=1
+   time.sleep(0.01)
+   dt = time.time() - prev_time
+
+'''
 
 
 
