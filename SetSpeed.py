@@ -123,7 +123,7 @@ def set_time(control_list):
     for a in range(0, 6):
         timer_list[a] = (control_list[a] + 100) * 0.00001
 
-
+    return timer_list
 
 
 
