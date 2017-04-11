@@ -1,8 +1,9 @@
-from threading import Timer
-import SetSpeed
-import ReadIMU
 import math
 import time
+from threading import Timer
+
+from SetSpeed import *
+from ReadIMU import *
 
 # ====================================================================
 # ***              MAIN LOOP INITIALIZATION BEGIN                  ***
@@ -22,21 +23,22 @@ PID = [0, 0, 0, 0, 0, 0]
 pwm_timers = [0, 0, 0, 0, 0, 0]
 
 
+
 # ----------------------    INITIALIZE GYRO     ----------------------
 
-id = start_dev(gyro_address, gyro_reg1, gyro_reg4, gyro_reg1_start, gyro_reg4_start)
+gyro_ref = start_dev(gyro_address, gyro_reg1, gyro_reg4, gyro_reg1_start, gyro_reg4_start)
 
 
 
 # ------------------    INITIALIZE ACCELEROMETER     ------------------
 
-id_a = start_dev(acc_address, acc_reg1, acc_reg4, acc_reg1_start, acc_reg4_start)
+acc_ref = start_dev(acc_address, acc_reg1, acc_reg4, acc_reg1_start, acc_reg4_start)
 
 
 
 # --------------------    INITIALIZE PWM DRIVER     --------------------
 
-start_pwm_driver()
+pwm_ref = start_pwm_driver(pwm_address)
 
 
 
@@ -65,31 +67,29 @@ z_axis = Filter()
 
 while (True):
 
-    while (time.time() - start_time >= 0.005):
+    
+    dt = time.time() - start_time
+    
+    while (dt >= 0.005):
 
-
+        
         start_time = time.time()
 
-
-        # --------------------    ESC CYCLE START     --------------------
-
-        all_motors_on()
-
-
-
+        
+        
         # -----------------------    READ GYRO     -----------------------
 
-        gyro_x_read()
-        gyro_y_read()
-        gyro_z_read()
+        gyro_x_read(gyro_ref)
+        gyro_y_read(gyro_ref)
+        gyro_z_read(gyro_ref)
 
 
 
         # -------------------    READ ACCELEROMETER     -------------------
 
-        acc_x = acc_x_read()
-        acc_y = acc_y_read()
-        acc_z = acc_z_read()
+        acc_x = acc_x_read(acc_ref)
+        acc_y = acc_y_read(acc_ref)
+        acc_z = acc_z_read(acc_ref)
 
 
         # ANGLE CALCULATION
@@ -110,34 +110,31 @@ while (True):
 
 
 
-        # ----------------------    PID CONTROLLER    ---------------------- [ ALL PID FUNCTIONS IN BELOW PART ]
+        # ----------------------    PID CONTROLLER    ---------------------- [ ALL PID FUNCTIONS BELOW ]
 
         PID = [50, 50, 50, 50, 50, 50]
 
 
 
-        # ------------------    CONTROL MATRIX -> TIME    ------------------
+        # -----------------    CONTROL MATRIX -> TIME    -------------------
 
         pwm_timers = set_time(PID)
 
 
 
+        # ---------------------    ESC CYCLE START     ---------------------
+
+        all_motors_on(pwm_ref)
+
+
+
         # ---------------------    RUN PWM SCHEDULE    ---------------------
 
-        scheduler_start(pwm_timers)
+        scheduler_start(pwm_ref, pwm_timers)
 
 
 # ====================================================================
 # ***                       MAIN LOOP END                          ***
 # ====================================================================
-
-
-
-
-
-
-
-
-
 
 
