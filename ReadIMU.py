@@ -1,104 +1,9 @@
 import time
 import math
 import wiringpi2
-from threading import Timerv
-
-# ====================================================================
-# ***           CONFIG VARIABLES INITIALIZATION BEGIN              ***
-# ====================================================================
-
-
-# --------------------    I2C HARDWARE ADDRESS    --------------------
-
-gyro_address = 0x6b
-acc_address = 0x1d
-
-
-# ----------------------    CONFIG REGISTERS    ----------------------
-
-gyro_reg1 = 0b00100000
-gyro_reg1_start = 0b00001111
-
-gyro_reg4 = 0b00100011
-gyro_reg4_start = 0b00110000
-
-
-acc_reg1 = 0b00100000
-acc_reg1_start = 0b01010111
-
-acc_reg4 = 0b00100011
-acc_reg4_start = 0b00101000
-
-
-# ---------------------     WORKING VARIABLES     ---------------------
-
-gyro_x_angle = 0
-gyro_y_angle = 0
-gyro_z_angle = 0
-
-loop_time = 0.01
-gyro_sens = 0.0175
-dt=0
-prev_time=0
-
-
-# -------------------     MEASUREMENT VARIABLES     -------------------
-
-cx=[0]*51
-cx2=0
-cx3=0
-
-cy=[0]*51
-cy2=0
-cy3=0
-
-cz=[0]*51
-cz2=0
-cz3=0
-
-acx=[0]*51
-acx2=0
-acx3=0
-
-acy=[0]*51
-acy2=0
-acy3=0
-
-acz=[0]*51
-acz2=0
-acz3=0
-
-
-calibrate_x = 0
-calibrate_y = 0
-calibrate_z = 0
-
-acc_calibrate_x = 0
-acc_calibrate_y = 0
-acc_calibrate_z = 0
-
-x_angle = 0
-y_angle = 0
-z_angle = 0
-
-p = 0
-
-gyro_x_angle = 0
-gyro_y_angle = 0
-gyro_z_angle = 0
-
-
-
-
-# ====================================================================
-# ***            CONFIG VARIABLES INITIALIZATION END               ***
-# ====================================================================
-
-import time
-import math
-import wiringpi2
 from threading import Timer
 
+
 # ====================================================================
 # ***           CONFIG VARIABLES INITIALIZATION BEGIN              ***
 # ====================================================================
@@ -108,6 +13,7 @@ from threading import Timer
 
 gyro_address = 0x6b
 acc_address = 0x1d
+
 
 
 # ----------------------    CONFIG REGISTERS    ----------------------
@@ -126,6 +32,7 @@ acc_reg4 = 0b00100011
 acc_reg4_start = 0b00101000
 
 
+
 # ---------------------     WORKING VARIABLES     ---------------------
 
 gyro_x_angle = 0
@@ -136,6 +43,7 @@ loop_time = 0.01
 gyro_sens = 0.0175
 dt=0
 prev_time=0
+
 
 
 # -------------------     MEASUREMENT VARIABLES     -------------------
@@ -184,11 +92,18 @@ gyro_y_angle = 0
 gyro_z_angle = 0
 
 
+# --------------------    FILTER TUNING     --------------------
+
+Q_angle = 0.001
+Q_bias = 0.003
+R_measure = 0.03
 
 
 # ====================================================================
 # ***            CONFIG VARIABLES INITIALIZATION END               ***
 # ====================================================================
+
+
 
 
 
@@ -215,7 +130,6 @@ def start_dev (address, adres_rejestru1, adres_rejestru2, bajt_danych1, bajt_dan
 
 
 # =====================  CALIBRATION PROCEDURE  =======================
-
 
 # ----------------------    GYRO CALIBRATION     ----------------------
 
@@ -302,17 +216,9 @@ def acc_calibrate(acc_id):
     acc_calibrate_y = acy2 / 51
     acc_calibrate_z = acz2 / 51
 
+    
+    
 # =====================  KALMAN FILTER  =======================
-
-
-# --------------------    FILTER TUNING     --------------------
-
-Q_angle = 0.001
-Q_bias = 0.003
-R_measure = 0.03
-
-
-# ------------------    FILTER MAIN CLASS     ------------------
 
 class Filter:
 
@@ -368,6 +274,10 @@ class Filter:
 
         return self.staticAngle
 
+ 
+
+    
+# =====================  IMU Read Functions  =======================    
 
 # ------------------------    GYRO READ     ------------------------
 
@@ -444,11 +354,7 @@ def acc_y_read(acc_id):
     acc_z = ((MSBz << 8) | LSBz) >> 4
     return acc_z
 
-while 1:
 
- if (time.time() - prev_time > loop_time):
-    
-   prev_time = time.time()
 
 '''
    # === Dane po filtracji, przechowywane w osobnych obiektach ====
