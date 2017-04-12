@@ -41,9 +41,7 @@ gyro_z_angle = 0
 
 loop_time = 0.01
 gyro_sens = 0.0175
-dt=0
-prev_time=0
-
+dt = 0
 
 
 # -------------------     MEASUREMENT VARIABLES     -------------------
@@ -84,8 +82,6 @@ acc_calibrate_z = 0
 x_angle = 0
 y_angle = 0
 z_angle = 0
-
-p = 0
 
 gyro_x_angle = 0
 gyro_y_angle = 0
@@ -276,8 +272,7 @@ class Filter:
 
  
 
-    
-# =====================  IMU Read Functions  =======================    
+# ===================== IMU Read Functions =======================
 
 # ------------------------    GYRO READ     ------------------------
 
@@ -291,7 +286,7 @@ def gyro_x_read(gyro_id):
 
     gyro_rate_x = gyro_x * gyro_sens
     gyro_x_time = (gyro_rate_x - calibrate_x) * dt / 50
-    gyro_x_angle += gyro_x_time
+    return gyro_x_time
 
 
 def gyro_y_read(gyro_id):
@@ -304,7 +299,7 @@ def gyro_y_read(gyro_id):
 
     gyro_rate_y = gyro_y * gyro_sens
     gyro_y_time = (gyro_rate_y - calibrate_y) * dt / 50
-    gyro_y_angle += gyro_y_time
+    return gyro_y_time
 
 
 def gyro_z_read(gyro_id):
@@ -318,7 +313,7 @@ def gyro_z_read(gyro_id):
 
     gyro_rate_z = gyro_z * gyro_sens
     gyro_z_time = (gyro_rate_z - calibrate_z) * dt / 50
-    gyro_z_angle += gyro_z_time
+    return gyro_z_time
 
 
 
@@ -345,7 +340,7 @@ def acc_y_read(acc_id):
     return acc_y
 
 
-    def acc_z_read(acc_id):
+def acc_z_read(acc_id):
 
     LSBz = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2C)
     MSBz = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2D)
@@ -353,22 +348,3 @@ def acc_y_read(acc_id):
         MSBz = -(0x010000 - MSBz)
     acc_z = ((MSBz << 8) | LSBz) >> 4
     return acc_z
-
-
-
-'''
-   # === Dane po filtracji, przechowywane w osobnych obiektach ====
-   print(str(x_axis.kalman(acc_x_angle, gyro_x_angle, dt)) + '     ' + str(y_axis.kalman(acc_y_angle, gyro_y_angle, dt)) + '     ' + str(z_axis.kalman(acc_z_angle, gyro_z_angle, dt)))
-   if p<1000:
-      osX = open("/home/pi/Desktop/osX.txt", "a")
-      osX.write(str(gyro_x_angle) + '     ' + str(acc_x_angle - acc_calibrate_x) + '\n')
-      osX.close()
-      osY = open("/home/pi/Desktop/osY.txt", "a")
-      osY.write(str(gyro_y_angle) + '     ' + str(acc_y_angle - acc_calibrate_y) + '\n')
-      osY.close()
-   elif p==1000:
-      print('-------------KONIEC SERII POMIAROWEJ---------------')
-   p+=1
-   time.sleep(0.01)
-   dt = time.time() - prev_time
-'''
