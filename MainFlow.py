@@ -66,22 +66,20 @@ z_axis = Filter()
 
 
 while (True):
-
     
-    dt = time.time() - start_time
+    dt = (time.time() - start_time) % 60
     
     while (dt >= 0.005):
-
-        
+       
         start_time = time.time()
 
         
         
         # -----------------------    READ GYRO     -----------------------
 
-        gyro_x_read(gyro_ref)
-        gyro_y_read(gyro_ref)
-        gyro_z_read(gyro_ref)
+        gyro_x_angle += gyro_x_read(gyro_ref)
+        gyro_x_angle += gyro_y_read(gyro_ref)
+        gyro_x_angle += gyro_z_read(gyro_ref)
 
 
 
@@ -121,20 +119,12 @@ while (True):
         pwm_timers = set_time(PID)
 
 
-
-        # ---------------------    ESC CYCLE START     ---------------------
-
-        all_motors_on(pwm_ref)
-
-
-
+        
         # ---------------------    RUN PWM SCHEDULE    ---------------------
 
-        scheduler_start(pwm_ref, pwm_timers)
+        set_times(pwm_ref, pwm_timers)
 
 
 # ====================================================================
 # ***                       MAIN LOOP END                          ***
 # ====================================================================
-
-
