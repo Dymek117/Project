@@ -1,5 +1,6 @@
 import math
 import time
+import Controll
 from threading import Timer
 
 from SetSpeed import *
@@ -47,6 +48,15 @@ pwm_ref = start_pwm_driver(pwm_address)
 x_axis = Filter()
 y_axis = Filter()
 z_axis = Filter()
+
+
+# --------------------    INITIALIZE PID CONTROLL CLASS   --------------------
+
+manualControll = False
+referenceAngles = [0, 0, 0] #expected IMU output, error minimalized // delete info when ridden
+referencePosition = [0, 0, 0] #expected position, when manualControll = True only referencePosition[2] is nessesary
+actualPosition = [0, 0, 0]
+controllObject = Controll.Controll([1,1,1], [1,1,1], [1,1,1], [1,1,1], [1,1,1], [1,1,1], manualControll)
 
 
 
@@ -110,7 +120,9 @@ while (True):
 
         # ----------------------    PID CONTROLLER    ---------------------- [ ALL PID FUNCTIONS BELOW ]
 
-        PID = [50, 50, 50, 50, 50, 50]
+        #PID = [50, 50, 50, 50, 50, 50]
+        PID = controllObject.run(referenceAngles, IMU, referencePosition, actualPosition) #saturation on 10%
+
 
 
 
