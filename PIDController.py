@@ -1,3 +1,6 @@
+#from types import types isinstance
+import types
+import collections
 ###
 #This class represents simple PID controller
 #and shouldn't be used alone
@@ -36,9 +39,16 @@ class PIDController:
 def saturate(value, maxValue, minValue):
     if maxValue < minValue:
         raise ValueError('Saturation baundries have been set improperly!')
-    elif value > maxValue:
-        value = maxValue
-    elif value < minValue:
-        value = minValue
+    if isinstance(value, collections.Iterable):    
+        for i in range(len(value)):
+            if value[i] > maxValue:
+                value[i] = maxValue
+            elif value[i] < minValue:
+                value[i] = minValue
+    else:
+        if value > maxValue:
+            value = maxValue
+        elif value < minValue:
+            value = minValue
     return value
         
