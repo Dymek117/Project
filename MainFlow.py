@@ -10,6 +10,7 @@ from ReadIMU import *
 # ***              MAIN LOOP INITIALIZATION BEGIN                  ***
 # ====================================================================
 
+
 # ------------------    ITERATORS, TIMES MEASURE    ------------------
 
 start_time = 0
@@ -76,15 +77,15 @@ controllObject = Controll.Controll([1,1,1], [1,1,1], [1,1,1], [1,1,1], [1,1,1], 
 
 
 while (True):
-    
+
     dt = (time.time() - start_time) % 60
-    
+
     while (dt >= 0.005):
-       
+
         start_time = time.time()
 
-        
-        
+
+
         # -----------------------    READ GYRO     -----------------------
 
         gyro_x_angle += gyro_x_read(gyro_ref)
@@ -120,8 +121,8 @@ while (True):
 
         # ----------------------    PID CONTROLLER    ---------------------- [ ALL PID FUNCTIONS BELOW ]
 
-        #PID = [50, 50, 50, 50, 50, 50]
-        PID = controllObject.run(referenceAngles, IMU, referencePosition, actualPosition) #saturation on 10%
+        PID = [22, 45, 45, 45, 45, 45]
+        #PID = controllObject.run(referenceAngles, IMU, referencePosition, actualPosition) #saturation on 10%
 
 
 
@@ -131,7 +132,6 @@ while (True):
         pwm_timers = set_time(PID)
 
 
-        
         # ---------------------    RUN PWM SCHEDULE    ---------------------
 
         set_times(pwm_ref, pwm_timers)

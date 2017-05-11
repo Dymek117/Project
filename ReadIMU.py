@@ -1,6 +1,6 @@
 import time
 import math
-import wiringpi2
+import wiringpi
 from threading import Timer
 
 
@@ -115,12 +115,12 @@ R_measure = 0.03
 
 def start_dev (address, adres_rejestru1, adres_rejestru2, bajt_danych1, bajt_danych2):
 
-    fd = wiringpi2.wiringPiI2CSetup(address)
+    fd = wiringpi.wiringPiI2CSetup(address)
     time.sleep(0.01)
 
-    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru1, bajt_danych1)
-    wiringpi2.wiringPiI2CWriteReg8(fd, adres_rejestru2, bajt_danych2)
-    
+    wiringpi.wiringPiI2CWriteReg8(fd, adres_rejestru1, bajt_danych1)
+    wiringpi.wiringPiI2CWriteReg8(fd, adres_rejestru2, bajt_danych2)
+
     return fd
 
 
@@ -133,27 +133,27 @@ def calibrate():
 
     for v in range(0,51):
 
-      LSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x22)
-      MSBx = wiringpi2.wiringPiI2CReadReg16(id, 0x23)
+      LSBx = wiringpi.wiringPiI2CReadReg16(id, 0x22)
+      MSBx = wiringpi.wiringPiI2CReadReg16(id, 0x23)
       if MSBx & 0x8000:
          MSBx = -(0x010000 - MSBx)
       x = ((MSBx << 8) | LSBx)
 
 
-      LSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x24)
-      MSBy = wiringpi2.wiringPiI2CReadReg16(id, 0x25)
+      LSBy = wiringpi.wiringPiI2CReadReg16(id, 0x24)
+      MSBy = wiringpi.wiringPiI2CReadReg16(id, 0x25)
       if MSBy & 0x8000:
           MSBy = -(0x010000 - MSBy)
       y = ((MSBy << 8) | LSBy)
 
-    
-      LSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x26)
-      MSBz = wiringpi2.wiringPiI2CReadReg16(id, 0x27)
+
+      LSBz = wiringpi.wiringPiI2CReadReg16(id, 0x26)
+      MSBz = wiringpi.wiringPiI2CReadReg16(id, 0x27)
       if MSBz & 0x8000:
          MSBz = -(0x010000 - MSBz)
       z = ((MSBz << 8) | LSBz)
 
-    
+
       gyro_rate_x = x * gyro_sens
       cx[v]=gyro_rate_x
       global cx2
@@ -174,25 +174,25 @@ def calibrate():
     calibrate_z = cz2 / 51
 
 
-# ------------------    ACCELEROMETER CALIBRATION     ------------------    
+# ------------------    ACCELEROMETER CALIBRATION     ------------------
 
 def acc_calibrate(acc_id):
 
     for t in range(0,51):
 
-      LSBx = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x28)
-      MSBx = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x29)
+      LSBx = wiringpi.wiringPiI2CReadReg16(acc_id, 0x28)
+      MSBx = wiringpi.wiringPiI2CReadReg16(acc_id, 0x29)
       acc_x = ((MSBx << 8) | LSBx) >> 4
 
-      LSBy = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2A)
-      MSBy = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2B)
+      LSBy = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2A)
+      MSBy = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2B)
       acc_y = ((MSBy << 8) | LSBy) >> 4
 
-      LSBz = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2C)
-      MSBz = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2D)
+      LSBz = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2C)
+      MSBz = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2D)
       acc_z = ((MSBz << 8) | LSBz) >> 4
 
-    
+
       acc_x_angle = (math.atan2(acc_y,acc_z)+3.141592653589793238546)*57.29578
       acx[t]=acc_x_angle
       global acx2
@@ -212,8 +212,8 @@ def acc_calibrate(acc_id):
     acc_calibrate_y = acy2 / 51
     acc_calibrate_z = acz2 / 51
 
-    
-    
+
+
 # =====================  KALMAN FILTER  =======================
 
 class Filter:
@@ -270,7 +270,7 @@ class Filter:
 
         return self.staticAngle
 
- 
+
 
 # ===================== IMU Read Functions =======================
 
@@ -278,8 +278,8 @@ class Filter:
 
 def gyro_x_read(gyro_id):
 
-    LSBx = wiringpi2.wiringPiI2CReadReg16(gyro_id, 0x22)
-    MSBx = wiringpi2.wiringPiI2CReadReg16(gyro_id, 0x23)
+    LSBx = wiringpi.wiringPiI2CReadReg16(gyro_id, 0x22)
+    MSBx = wiringpi.wiringPiI2CReadReg16(gyro_id, 0x23)
     if MSBx & 0x8000:
         MSBx = -(0x010000 - MSBx)
     gyro_x = ((MSBx << 8) | LSBx)
@@ -291,8 +291,8 @@ def gyro_x_read(gyro_id):
 
 def gyro_y_read(gyro_id):
 
-    LSBy = wiringpi2.wiringPiI2CReadReg16(gyro_id, 0x24)
-    MSBy = wiringpi2.wiringPiI2CReadReg16(gyro_id, 0x25)
+    LSBy = wiringpi.wiringPiI2CReadReg16(gyro_id, 0x24)
+    MSBy = wiringpi.wiringPiI2CReadReg16(gyro_id, 0x25)
     if MSBy & 0x8000:
         MSBy = -(0x010000 - MSBy)
     gyro_y = ((MSBy << 8) | LSBy)
@@ -304,8 +304,8 @@ def gyro_y_read(gyro_id):
 
 def gyro_z_read(gyro_id):
 
-    LSBz = wiringpi2.wiringPiI2CReadReg16(gyro_id, 0x26)
-    MSBz = wiringpi2.wiringPiI2CReadReg16(gyro_id, 0x27)
+    LSBz = wiringpi.wiringPiI2CReadReg16(gyro_id, 0x26)
+    MSBz = wiringpi.wiringPiI2CReadReg16(gyro_id, 0x27)
     if MSBz & 0x8000:
         MSBz = -(0x010000 - MSBz)
 
@@ -322,8 +322,8 @@ def gyro_z_read(gyro_id):
 
 def acc_x_read(acc_id):
 
-   LSBx = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x28)
-   MSBx = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x29)
+   LSBx = wiringpi.wiringPiI2CReadReg16(acc_id, 0x28)
+   MSBx = wiringpi.wiringPiI2CReadReg16(acc_id, 0x29)
    if MSBx & 0x8000:
       MSBx = -(0x010000 - MSBx)
    acc_x = ((MSBx << 8) | LSBx) >> 4
@@ -332,8 +332,8 @@ def acc_x_read(acc_id):
 
 def acc_y_read(acc_id):
 
-    LSBy = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2A)
-    MSBy = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2B)
+    LSBy = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2A)
+    MSBy = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2B)
     if MSBy & 0x8000:
         MSBy = -(0x010000 - MSBy)
     acc_y = ((MSBy << 8) | LSBy) >> 4
@@ -342,8 +342,8 @@ def acc_y_read(acc_id):
 
 def acc_z_read(acc_id):
 
-    LSBz = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2C)
-    MSBz = wiringpi2.wiringPiI2CReadReg16(acc_id, 0x2D)
+    LSBz = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2C)
+    MSBz = wiringpi.wiringPiI2CReadReg16(acc_id, 0x2D)
     if MSBz & 0x8000:
         MSBz = -(0x010000 - MSBz)
     acc_z = ((MSBz << 8) | LSBz) >> 4

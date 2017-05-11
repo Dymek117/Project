@@ -1,5 +1,5 @@
 import time
-import wiringpi2
+import wiringpi
 from threading import Timer
 
 # -*- coding: utf-8 -*-
@@ -28,9 +28,15 @@ from threading import Timer
 # ====================================================================
 
 
+# GLOBAL VARIABLES
+
+global timer_list
+timer_list = [None] *6
+
+
 # I2C HARDWARE ADDRESS
 
-pwm_address = 0b00111110   # A6,A5 TO GND, A4-A0 TO VCC
+pwm_address = 0x70       # A6,A5 TO GND, A4-A0 TO VCC
 
 
 # CONFIG REGISTERS
@@ -74,27 +80,30 @@ dimming_value        = 0xFF    # 99.6% [ 0.005223s ]
 # ESTABILISH I2C CONNECTION, DRIVER CONFIGURATION
 
 def start_pwm_driver(pwm_addr):
-    
-    pwm_id = wiringpi2.wiringPiI2CSetup(pwm_addr)
-    time.sleep(0.001)
-    
-    # OSCILLATOR = ON 
-    wiringpi2.wiringPiI2CWriteReg8(pwm_id, mode_1_reg_address, mode_1_reg_value)
 
-    # FREQ = 200Hz        
-    wiringpi2.wiringPiI2CWriteReg8(pwm_id, 0xFE, 0x1E)
-    
+    global PWM_ON_ADDR_LOW
+    global PWM_ON_ADDR_HIGH
+
+    pwm_id = wiringpi.wiringPiI2CSetup(pwm_addr)
+    time.sleep(0.001)
+
+    # OSCILLATOR = ON
+    wiringpi.wiringPiI2CWriteReg8(pwm_id, mode_1_reg_address, mode_1_reg_value)
+
+    # FREQ = 200Hz
+    wiringpi.wiringPiI2CWriteReg8(pwm_id, 0xFE, 0x1E)
+
     # SET MOTORS ENABLE DELAY TIME = 100
     for a in range(0, 6):
-        
+
         PWM_MSB, PWM_LSB = divmod(100, 1<<8)
-        
+
         byte_low = PWM_ON_ADDR_LOW[a]
         byte_high = PWM_ON_ADDR_HIGH[a]
-        
-        wiringpi2.wiringPiI2CWriteReg8(pwm_id, byte_low, PWM_LSB)
-        wiringpi2.wiringPiI2CWriteReg8(pwm_id, byte_high, PWM_MSB)
-    
+
+        wiringpi.wiringPiI2CWriteReg8(pwm_id, byte_low, PWM_LSB)
+        wiringpi.wiringPiI2CWriteReg8(pwm_id, byte_high, PWM_MSB)
+
     return pwm_id
 
 
@@ -106,7 +115,7 @@ def start_pwm_driver(pwm_addr):
 def set_time(control_list):
 
     for a in range(0, 6):
-        timer_list[a] = int(919 + (819 * control_list[a]/100))
+        timer_list[a] = int(996 + (896 * control_list[a]/100))
 
     return timer_list
 
@@ -116,12 +125,15 @@ def set_time(control_list):
 
 def set_times(pwm_id, times):
 
+    global PWM_OFF_ADDR_LOW
+    global PWM_OFF_ADDR_HIGH
+
     for a in range(0, 6):
-        
+
         PWM_MSB, PWM_LSB = divmod(times[a], 1<<8)
-        
+
         byte_low = PWM_OFF_ADDR_LOW[a]
-        byte_high = PWM_0FF_ADDR_HIGH[a]
-        
-        wiringpi2.wiringPiI2CWriteReg8(pwm_id, byte_low, PWM_LSB)
-        wiringpi2.wiringPiI2CWriteReg8(pwm_id, byte_high, PWM_MSB)
+        byte_high = PWM_OFF_ADDR_HIGH[a]
+
+        wiringpi.wiringPiI2CWriteReg8(pwm_id, byte_low, PWM_LSB)
+        wiringpi.wiringPiI2CWriteReg8(pwm_id, byte_high, PWM_MSB)
