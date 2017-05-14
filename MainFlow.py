@@ -53,6 +53,14 @@ z_axis = Filter()
 
 # --------------------    INITIALIZE PID CONTROLL CLASS   --------------------
 
+# INFO
+#referenceAngle[0] > 0 -> engine nr.3 and nr.4 > 0
+#referenceAngle[0] < 0 -> engine nr.0 and nr.1 > 0
+#referenceAngle[1] > 0 -> engine nr.0, nr.4 and nr.5 > 0
+#referenceAngle[1] < 0 -> engine nr.1, nr.2 and nr.3 > 0
+#referenceAngle[2] > 0 -> engine nr.0, nr.2 and nr.4 > 0
+#referenceAngle[2] < 0 -> engine nr.1, nr.3 and nr.5 > 0
+
 manualControll = True
 referenceAngles = [0, 0, 0] #expected IMU output, error minimalized // delete info when ridden
 referencePosition = [0, 0, 0] #expected position, when manualControll = True only referencePosition[2] is nessesary
