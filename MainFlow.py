@@ -53,11 +53,11 @@ z_axis = Filter()
 
 # --------------------    INITIALIZE PID CONTROLL CLASS   --------------------
 
-manualControll = False
+manualControll = True
 referenceAngles = [0, 0, 0] #expected IMU output, error minimalized // delete info when ridden
 referencePosition = [0, 0, 0] #expected position, when manualControll = True only referencePosition[2] is nessesary
-actualPosition = [0, 0, 0]
-controllObject = Controll.Controll([1,1,1], [1,1,1], [1,1,1], [1,1,1], [1,1,1], [1,1,1], manualControll)
+actualPosition = [0, 0, 0] #Position from GPS, when manualControll = True only referencePosition[2] is nessesary
+controllObject = Controll.Controll([1,1,0], [1,1,0], [1,1,0], [1,1,0], [1,1,0], [1,1,0], manualControll)
 
 
 
@@ -121,8 +121,9 @@ while (True):
 
         # ----------------------    PID CONTROLLER    ---------------------- [ ALL PID FUNCTIONS BELOW ]
 
-        PID = [22, 45, 45, 45, 45, 45]
-        #PID = controllObject.run(referenceAngles, IMU, referencePosition, actualPosition) #saturation on 10%
+        #PID = [22, 45, 45, 45, 45, 45]
+        #INFO ---- set referenceAngles (in deegres) and PID will try to adjust output to achieve those angles
+        PID = controllObject.run(referenceAngles, IMU, referencePosition, actualPosition) #saturation on 30%
 
 
 

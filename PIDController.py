@@ -4,6 +4,7 @@ import collections
 ###
 #This class represents simple PID controller
 #and shouldn't be used alone
+# constructor PIDController(Gain, Derivative, Integrator)
 
 class PIDController:
 
@@ -37,6 +38,7 @@ class PIDController:
 
 
 def saturate(value, maxValue, minValue):
+#    print value
     if maxValue < minValue:
         raise ValueError('Saturation baundries have been set improperly!')
     if isinstance(value, collections.Iterable):    
@@ -50,5 +52,7 @@ def saturate(value, maxValue, minValue):
             value = maxValue
         elif value < minValue:
             value = minValue
+
+#    print value
     return value
         

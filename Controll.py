@@ -18,8 +18,8 @@ import numpy as np
 
 class Controll:
 
-    __vehicleWeight = 1.8 #[kg]
-    __saturationMax = 99
+    __vehicleWeight = 2.7 #[kg]
+    __saturationMax = 29
     __saturationMin = 0
     __angleToRadianConst = 2*3.14159265359/360
     __momentsOfInertia = [1,1,1] #Moments of inertia [x, y, z]
@@ -60,7 +60,7 @@ class Controll:
     #input expected values for fi angle and Y position,
     #input also present fi angle and Y position,
     #check how are signed axis in accelerometer, change  ref-present if needed
-    def __calculateTorqueX(self, referenceY, presentY, referenceFi, presentFi):
+    def __calculateTorqueX(self, referenceFi, presentFi, referenceY = [0], presentY = [0]):
         if self.__manualControll:
             errorFi = self.__fiPID.PIDNextStep(referenceFi - presentFi)
             errorFi = errorFi*self.__momentsOfInertia[0]
@@ -70,13 +70,14 @@ class Controll:
             errorY  = PIDController.saturate(errorY, self.__saturationMax, self.__saturationMin)
             errorFi = self.__fiPID.PIDNextStep(referenceFi - presentFi + errorY)
             errorFi = errorFi*self.__momentsOfInertia[0]
-        return PIDController.saturate(errorFi, self.__saturationMax, self.__saturationMin)
+        #return PIDController.saturate(errorFi, self.__saturationMax, self.__saturationMin)
+        return errorFi
 
     #bear in mind that for coutnig Y torque there are X values needed
     #input expected values for theta angle and X position,
     #input also present theta angle and X position,
     #check how are signed axis in accelerometer, change  ref-present if needed
-    def __calculateTorqueY(self, referenceX, presentX, referenceTheta, presentTheta):
+    def __calculateTorqueY(self, referenceTheta, presentTheta, referenceX = [0], presentX = [0]):
         if self.__manualControll:
             errorTheta = self.__thetaPID.PIDNextStep(presentTheta - referenceTheta)
             erorTheta = errorTheta*self.__momentsOfInertia[1]
@@ -86,30 +87,34 @@ class Controll:
             errorX     = PIDController.saturate(errorX, self.__saturationMax, self.__saturationMin)
             errorTheta = self.__thetaPID.PIDNextStep(presentTheta - referenceTheta + errorX)
             errorTheta = errorTheta*self.__momentsOfInertia[1]
-        return PIDController.saturate(errorTheta, self.__saturationMax, self.__saturationMin)
+        #return PIDController.saturate(errorTheta, self.__saturationMax, self.__saturationMin)
+        return errorTheta
   
     #check how are signed axis in accelerometer, change  ref-present if needed   
     def __calculateTorqueZ(self, referencePsi, presentPsi):
         errorPsi = self.__psiPID.PIDNextStep(referencePsi - presentPsi)
         errorPsi = errorPsi*self.__momentsOfInertia[2]
-        return PIDController.saturate(errorPsi, self.__saturationMax, self.__saturationMin)
+        #return PIDController.saturate(errorPsi, self.__saturationMax, self.__saturationMin)
+        return errorPsi
 
     #calculate width of PWM controll signal for each engine return as vector [6x1]
     def __calculateNewPwmValues(self, thrust, torqueX, torqueY, torqueZ):
         self.__valuesPWM = np.dot(self.__controllMatrix, [thrust, torqueX, torqueY, torqueZ]) 
         self.__valuesPWM = PIDController.saturate(self.__valuesPWM, self.__saturationMax, self.__saturationMin)
 
+    #change delivering referencePosition argument via list when manualControll == True
+    #when manualControll == True nedded are all angles and altitude delivered by reference/presentPosition[2]
     #run whole controll algorithm
     def run(self, referenceAngle, presentAngle, referencePosition, presentPosition):
         if self.__manualControll:            
-            thrust  = self.__calculateThrust(referencePosition, presentPosition)
+            thrust  = self.__calculateThrust(referencePosition[2], presentPosition[2])
             torqueX = self.__calculateTorqueX(referenceAngle[0], presentAngle[0])
             torqueY = self.__calculateTorqueY(referenceAngle[1], presentAngle[1])
             torqueZ = self.__calculateTorqueZ(referenceAngle[2], presentAngle[2])
         else:
             thrust  = self.__calculateThrust(referencePosition[2], presentPosition[2])
-            torqueX = self.__calculateTorqueX(referencePosition[1], presentPosition[1], referenceAngle[0], presentAngle[0])
-            torqueY = self.__calculateTorqueY(referencePosition[0], presentPosition[0], referenceAngle[1], presentAngle[1])
+            torqueX = self.__calculateTorqueX(referenceAngle[0], presentAngle[0], referencePosition[1], presentPosition[1])
+            torqueY = self.__calculateTorqueY(referenceAngle[1], presentAngle[1], referencePosition[0], presentPosition[0])
             torqueZ = self.__calculateTorqueZ(referenceAngle[2], presentAngle[2])
         self.__calculateNewPwmValues(thrust, torqueX, torqueY, torqueZ)
         return self.__valuesPWM
